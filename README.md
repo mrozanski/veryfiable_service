@@ -74,7 +74,7 @@ DB_PASSWORD=your_password_here
 CORS_ORIGIN=*
 
 # Ethereum / EAS Configuration
-ETHEREUM_RPC_URL=https://sepolia.base.org
+RPC_URL=https://sepolia.base.org
 PRIVATE_KEY=your_private_key_here
 EAS_CONTRACT_ADDRESS=0x4200000000000000000000000000000000000021
 SCHEMA_REGISTRY_ADDRESS=0x4200000000000000000000000000000000000020
@@ -106,6 +106,169 @@ Or using the environment variables:
 ```bash
 psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f database/schema.sql
 ```
+
+## EAS Schema Registration
+
+Before you can create attestations, you need to register the Public Review schema on the Ethereum Attestation Service.
+
+### Prerequisites for Schema Registration
+
+1. **Base Sepolia Testnet ETH**: You need a small amount of testnet ETH to pay for gas fees
+   - Get free testnet ETH from the [Coinbase Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
+   - Typically 0.01 ETH is sufficient for schema registration
+
+2. **Wallet Private Key**: Export your wallet's private key (keep it secure!)
+   - **NEVER commit your private key to version control**
+   - **NEVER share your private key**
+   - Use a dedicated wallet for testing purposes
+
+### Environment Setup for Registration
+
+Ensure your `.env` file has the following variables configured:
+
+```env
+# Required for schema registration
+RPC_URL=https://sepolia.base.org
+PRIVATE_KEY=your_private_key_here
+SCHEMA_REGISTRY_ADDRESS=0x4200000000000000000000000000000000000020
+```
+
+### Registering the Schema
+
+Run the registration script:
+
+```bash
+npm run register-schema
+```
+
+The script will:
+1. ✅ Validate all environment variables
+2. ✅ Connect to Base Sepolia network
+3. ✅ Check your wallet balance
+4. ✅ Register the schema: `string platformId,string itemId,string reviewText,uint8 rating`
+5. ✅ Output the schema UID
+
+### Expected Output
+
+```
+═══════════════════════════════════════════════════════════
+  EAS Schema Registration Script
+  Base Sepolia Testnet
+═══════════════════════════════════════════════════════════
+
+ℹ️  Validating environment variables...
+✅ Environment variables validated successfully
+
+ℹ️  Connecting to Base Sepolia network...
+✅ Connected to network: base-sepolia (Chain ID: 84532)
+ℹ️  Wallet address: 0x...
+ℹ️  Wallet balance: 0.05 ETH
+
+ℹ️  Initializing Schema Registry...
+ℹ️  Schema Details:
+  Schema: string platformId,string itemId,string reviewText,uint8 rating
+  Resolver: 0x0000000000000000000000000000000000000000
+  Revocable: true
+
+ℹ️  Registering schema on Base Sepolia...
+⚠️  This will require a transaction and gas fees.
+ℹ️  Transaction submitted: 0x...
+ℹ️  Waiting for transaction confirmation...
+✅ Schema registered successfully!
+
+═══════════════════════════════════════════════════════════
+Schema UID: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+═══════════════════════════════════════════════════════════
+
+ℹ️  Next Steps:
+  1. Copy the Schema UID above
+  2. Add it to your .env file as PUBLIC_REVIEW_SCHEMA_UID
+  3. Use this UID when creating attestations
+```
+
+### After Registration
+
+1. **Copy the Schema UID** from the output (the long hexadecimal string starting with `0x`)
+
+2. **Update your `.env` file** with the schema UID:
+   ```env
+   PUBLIC_REVIEW_SCHEMA_UID=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+   ```
+
+3. **Verify the schema** on EAS Scan:
+   - Visit: https://base-sepolia.easscan.org/schema/view/YOUR_SCHEMA_UID
+   - Replace `YOUR_SCHEMA_UID` with your actual schema UID
+
+4. **Save the Schema UID** - you'll need it for creating attestations
+
+### Troubleshooting Schema Registration
+
+#### Error: Missing environment variables
+
+```
+❌ ERROR: Missing required environment variables: RPC_URL, PRIVATE_KEY
+```
+
+**Solution**: Ensure your `.env` file exists and contains all required variables. Copy from `.env.example` if needed.
+
+#### Error: Invalid PRIVATE_KEY format
+
+```
+❌ ERROR: Invalid PRIVATE_KEY format. Must be a 64-character hexadecimal string
+```
+
+**Solution**: Check that your private key is exactly 64 hexadecimal characters (with or without `0x` prefix).
+
+#### Error: Network connection failed
+
+```
+❌ ERROR: Network connection failed: could not detect network
+```
+
+**Solution**:
+- Check your internet connection
+- Verify the RPC_URL is correct
+- Try an alternative RPC endpoint (see `.env.example` for options)
+
+#### Warning: Wallet has zero balance
+
+```
+⚠️  Wallet has zero balance. You will need testnet ETH to register the schema.
+```
+
+**Solution**: Get testnet ETH from the [Coinbase Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
+
+#### Error: Insufficient funds
+
+```
+❌ ERROR: Insufficient funds to pay for gas.
+```
+
+**Solution**: Your wallet needs more testnet ETH. Visit the faucet and request more funds.
+
+#### Error: Schema already exists
+
+```
+❌ ERROR: Schema already exists. This schema may have been registered previously.
+```
+
+**Solution**: The schema has already been registered with this wallet. Check your previous transactions or use the existing schema UID.
+
+### Schema Details
+
+The Public Review schema contains four fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `platformId` | string | Platform identifier (e.g., "yelp", "amazon", "google") |
+| `itemId` | string | Platform-specific item identifier |
+| `reviewText` | string | The review content/text |
+| `rating` | uint8 | Numeric rating (typically 1-10) |
+
+**Schema Properties**:
+- **Revocable**: Yes - reviews can be revoked if needed
+- **Resolver**: None (0x0000000000000000000000000000000000000000)
+- **Network**: Base Sepolia Testnet
 
 ## Running the Service
 
@@ -251,8 +414,8 @@ Stores registered EAS schemas.
 
 ## Environment Variables Reference
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable | Description | Default / Value |
+|----------|-------------|-----------------|
 | `PORT` | Server port | 3001 |
 | `NODE_ENV` | Environment | development |
 | `DB_HOST` | Database host | localhost |
@@ -261,11 +424,12 @@ Stores registered EAS schemas.
 | `DB_USER` | Database user | postgres |
 | `DB_PASSWORD` | Database password | - |
 | `CORS_ORIGIN` | CORS allowed origins | * |
-| `ETHEREUM_RPC_URL` | Ethereum RPC endpoint | - |
-| `PRIVATE_KEY` | Ethereum private key | - |
-| `EAS_CONTRACT_ADDRESS` | EAS contract address | - |
-| `SCHEMA_REGISTRY_ADDRESS` | Schema registry address | - |
-| `PUBLIC_REVIEW_SCHEMA_UID` | Public review schema UID | - |
+| `RPC_URL` | Base Sepolia RPC endpoint | https://sepolia.base.org |
+| `PRIVATE_KEY` | Ethereum wallet private key | - |
+| `EAS_CONTRACT_ADDRESS` | EAS contract address (Base Sepolia) | 0x4200000000000000000000000000000000000021 |
+| `SCHEMA_REGISTRY_ADDRESS` | Schema registry address (Base Sepolia) | 0x4200000000000000000000000000000000000020 |
+| `PUBLIC_REVIEW_SCHEMA_UID` | Public review schema UID (from registration) | - |
+| `DEBUG` | Enable detailed error stack traces | false |
 
 ## Development Workflow
 

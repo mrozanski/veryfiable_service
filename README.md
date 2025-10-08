@@ -85,17 +85,14 @@ PUBLIC_REVIEW_SCHEMA_UID=0x...
 
 ### 4. Database Setup
 
-#### Create Database
+#### Create Database and user
 
 ```bash
-# Connect to PostgreSQL
-psql -U postgres
+psql -d postgres -c "CREATE DATABASE veryfiable;"
+psql postgres -c "CREATE USER veryfiable WITH PASSWORD 'your_password';"
+# Make user the database owner (this is the key step)
+psql postgres -c "ALTER DATABASE veryfiable OWNER TO veryfiable;"
 
-# Create database
-CREATE DATABASE veryfiable;
-
-# Exit psql
-\q
 ```
 
 #### Run Schema Migration

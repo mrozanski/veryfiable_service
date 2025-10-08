@@ -1,0 +1,30 @@
+{
+  "name": "veryfiable-service",
+  "version": "0.1.0",
+  "description": "Veryfiable Attestation Service - Verified public reviews using EAS",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "attestation",
+    "eas",
+    "reviews",
+    "ethereum"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "ethers": "^6.9.0",
+    "@ethereum-attestation-service/eas-sdk": "^2.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
